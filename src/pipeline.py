@@ -1,0 +1,275 @@
+import argparse
+import logging
+from config import CITIES, START_DATE, END_DATE, DAILY_VARIABLES
+
+import pandas as pd
+from datetime import datetime, timedelta
+
+from ingestion import fetch_all_cities, fetch_forecast
+from cleaning import clean_raw_to_staging
+from features import create_base_features_historical, create_forecast_features
+
+
+
+from database import (
+    get_connection,
+    create_schemas,
+    create_raw_tables,
+    load_raw_historical_data,
+    load_raw_forecast_data
+)
+
+from cleaning import clean_raw_to_staging
+from features import (
+    create_base_features_historical,
+    create_forecast_features
+)
+
+
+# logging.basicConfig(
+#     filename="logs/pipeline.log",
+#     level=logging.INFO,
+#     format="%(asctime)s | %(levelname)s | %(message)s"
+# )
+
+
+# ─────────────────────────────
+# FULL PIPELINE
+# ─────────────────────────────
+def run_full_pipeline(conn, logger):
+
+    start_time = datetime.now()
+    logger.info("PIPELINE STARTED (FULL MODE)")
+
+    # 1. DB setup
+    create_schemas(conn)
+    create_raw_tables(conn)
+
+    conn.execute("DELETE FROM raw.weather_daily_historical")
+    conn.execute("DELETE FROM raw.weather_daily_forecast")
+    # 2. INGESTION
+    historical_data = fetch_all_cities(
+        cities_config=CITIES,
+        start_date=START_DATE,
+        end_date=END_DATE,
+        variables=DAILY_VARIABLES
+    )
+
+    forecast_data = {
+        city["name"]: fetch_forecast(
+            city_name=city["name"],
+            latitude=city["latitude"],
+            longitude=city["longitude"],
+            variables=DAILY_VARIABLES
+        )
+        for city in CITIES
+    }
+
+    logger.info("Data fetched")
+
+    # 3. SAVE FILES
+    for city, df in historical_data.items():
+        df.to_csv(f"data/raw/{city}_historical.csv", index=False)
+
+    for city, df in forecast_data.items():
+        df.to_csv(f"data/raw/{city}_forecast.csv", index=False)
+
+    # 4. LOAD RAW
+    load_raw_historical_data(conn, "data/raw")
+    load_raw_forecast_data(conn, "data/raw")
+
+    logger.info("Raw loaded into DuckDB")
+
+    # 5. STAGING
+    clean_raw_to_staging(conn)
+    logger.info("Staging completed")
+
+    # 6. FEATURES
+    create_base_features_historical(conn)
+    create_forecast_features(conn)
+
+    logger.info("Feature engineering completed")
+
+    # 7. SUMMARY
+    summary = {
+        "historical_rows": conn.execute("SELECT COUNT(*) FROM raw.weather_daily_historical").fetchone()[0],
+        "forecast_rows": conn.execute("SELECT COUNT(*) FROM raw.weather_daily_forecast").fetchone()[0],
+        "staging_hist_rows": conn.execute("SELECT COUNT(*) FROM staging.weather_daily_historical").fetchone()[0],
+        "analytics_hist_rows": conn.execute("SELECT COUNT(*) FROM analytics.weather_features_historical").fetchone()[0],
+        "analytics_forecast_rows": conn.execute("SELECT COUNT(*) FROM analytics.weather_features_forecast").fetchone()[0],
+        "duration": str(datetime.now() - start_time)
+    }
+
+    logger.info(f"SUMMARY: {summary}")
+
+    return summary
+
+
+
+
+# ─────────────────────────────────────────────
+# HELPERS
+# ─────────────────────────────────────────────
+
+def get_last_dates_by_city(conn, table_name):
+    query = f"""
+        SELECT city, MAX(date) as last_date
+        FROM {table_name}
+        GROUP BY city
+    """
+    result = conn.execute(query).fetchall()
+    return {row[0]: row[1] for row in result}
+
+
+def window_start(date, days=30):
+    return (pd.to_datetime(date) - pd.Timedelta(days=days)).date()
+
+
+# ─────────────────────────────────────────────
+# INCREMENTAL PIPELINE (PRODUCTION VERSION)
+# ─────────────────────────────────────────────
+
+def run_incremental_pipeline(conn, logger):
+
+    logger.info(" INCREMENTAL PIPELINE STARTED")
+
+    # ─────────────────────────────
+    # 1. LAST DATE PER CITY
+    # ─────────────────────────────
+    last_dates = get_last_dates_by_city(conn, "raw.weather_daily_historical")
+
+    if not last_dates:
+        raise ValueError("No historical data found in raw table")
+
+    rows_added_total = 0
+    affected_cities = {}
+    skipped_cities = []
+
+    # ─────────────────────────────
+    # 2. INGEST NEW DATA (HISTORICAL)
+    # ─────────────────────────────
+    for city in CITIES:
+
+        name = city["name"]
+        city_last = last_dates.get(name)
+
+        if city_last is None:
+            skipped_cities.append(name)
+            logger.warning(f"{name}: missing data")
+            continue
+
+        start_date = (pd.to_datetime(city_last) + timedelta(days=1)).date()
+        end_date = datetime.today().date()
+
+        if start_date >= end_date:
+            skipped_cities.append(name)
+            logger.info(f"{name}: already up-to-date")
+            continue
+
+        df = fetch_all_cities(
+            cities_config=[city],
+            start_date=str(start_date),
+            end_date=str(end_date),
+            variables=DAILY_VARIABLES
+        )[name]
+
+        if not df.empty:
+            conn.register("tmp_city", df)
+
+            conn.execute("""
+                INSERT INTO raw.weather_daily_historical
+                SELECT * FROM tmp_city
+            """)
+
+            rows_added_total += len(df)
+            affected_cities[name] = city_last
+
+        logger.info(f"{name}: +{len(df)} rows")
+
+    # ─────────────────────────────
+    # 3. FORECAST REFRESH (FULL OVERWRITE)
+    # ─────────────────────────────
+    forecast_dfs = []
+
+    for city in CITIES:
+        df = fetch_forecast(
+            city_name=city["name"],
+            latitude=city["latitude"],
+            longitude=city["longitude"],
+            variables=DAILY_VARIABLES
+        )
+        forecast_dfs.append(df)
+
+    forecast_df = pd.concat(forecast_dfs, ignore_index=True)
+
+    conn.execute("DELETE FROM raw.weather_daily_forecast")
+    conn.register("tmp_forecast", forecast_df)
+
+    conn.execute("""
+        INSERT INTO raw.weather_daily_forecast
+        SELECT * FROM tmp_forecast
+    """)
+
+    # ─────────────────────────────
+    # 4. STAGING (FULL SAFE REBUILD)
+    # ─────────────────────────────
+    logger.info(" Rebuilding staging tables")
+
+    clean_raw_to_staging(conn)
+
+    # ─────────────────────────────
+    # 5. FEATURE ENGINEERING (WINDOWED LOGIC)
+    # ─────────────────────────────
+    logger.info(" Feature engineering started")
+
+    create_base_features_historical(conn)
+    create_forecast_features(conn)
+
+    # ─────────────────────────────
+    # 6. SUMMARY REPORT (FULLY ENRICHED)
+    # ─────────────────────────────
+    summary = {
+        "mode": "incremental",
+        "rows_added_raw": rows_added_total,
+        "affected_cities": list(affected_cities.keys()),
+        "skipped_cities": skipped_cities,
+
+        "raw_hist_total": conn.execute(
+            "SELECT COUNT(*) FROM raw.weather_daily_historical"
+        ).fetchone()[0],
+
+        "raw_forecast_total": conn.execute(
+            "SELECT COUNT(*) FROM raw.weather_daily_forecast"
+        ).fetchone()[0],
+
+        "staging_hist": conn.execute(
+            "SELECT COUNT(*) FROM staging.weather_daily_historical"
+        ).fetchone()[0],
+
+        "staging_forecast": conn.execute(
+            "SELECT COUNT(*) FROM staging.weather_daily_forecast"
+        ).fetchone()[0],
+
+        "analytics_hist": conn.execute(
+            "SELECT COUNT(*) FROM analytics.weather_features_historical"
+        ).fetchone()[0],
+
+        "analytics_forecast": conn.execute(
+            "SELECT COUNT(*) FROM analytics.weather_features_forecast"
+        ).fetchone()[0],
+
+        "timestamp": str(datetime.now())
+    }
+
+    logger.info(f" INCREMENTAL SUMMARY: {summary}")
+
+    print("\n==============================")
+    print("PRODUCTION INCREMENTAL REPORT")
+    print("==============================")
+
+    for k, v in summary.items():
+        print(f"{k}: {v}")
+
+    print("==============================\n")
+
+    return summary
