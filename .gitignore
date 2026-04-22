@@ -1,10 +1,12 @@
 # Data
-data/raw/
+data/raw/*
+!data/raw/.gitkeep
 data/database/*.duckdb
 data/database/*.duckdb.wal
 
 # Logs
-logs/
+logs/*
+!logs/.gitkeep
 
 # Python
 __pycache__/
