@@ -2,7 +2,7 @@ import duckdb
 import os
 
 
-def get_connection(db_path="weather.duckdb"):
+def get_connection(db_path="weather_daily.duckdb"):
     """
     Creates or connects to a DuckDB database file.
     """
