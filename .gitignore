@@ -1,7 +1,7 @@
 # Data
 data/raw/
-data/*.duckdb
-data/*.duckdb.wal
+data/database/*.duckdb
+data/database/*.duckdb.wal
 
 # Logs
 logs/
