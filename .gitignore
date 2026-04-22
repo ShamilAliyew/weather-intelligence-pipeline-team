@@ -6,6 +6,7 @@ data/database/*.duckdb.wal
 
 # Logs
 logs/*
+!logs/.gitkeep
 
 # Python
 __pycache__/
