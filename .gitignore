@@ -5,7 +5,7 @@ data/database/*.duckdb
 data/database/*.duckdb.wal
 
 # Logs
-logs/
+logs/*
 
 # Python
 __pycache__/
