@@ -43,13 +43,16 @@ def fetch_historical(city_name, latitude, longitude,
     start = pd.to_datetime(start_date).date()
     end = pd.to_datetime(end_date).date()
     today = pd.Timestamp.today().date()
+    max_allowed = today - pd.Timedelta(days=1)
+
 
     # Validation
     if start >= end:
         raise ValueError("start_date must be earlier than end_date")
 
-    if end > today:
-        raise ValueError("end_date cannot be in the future")
+    if end > max_allowed:
+        print(f"⚠️ end_date adjusted from {end} to {max_allowed}")
+        end = max_allowed
 
     def _request():
         params = {
