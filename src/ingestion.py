@@ -10,14 +10,28 @@ client = openmeteo_requests.Client()
 # -----------------------------
 # Retry helper
 # -----------------------------
-def retry_request(func, retries=3, delay=2):
+def retry_request(func, retries=5, delay=2):
     for attempt in range(retries):
         try:
             return func()
+
         except Exception as e:
+            error_msg = str(e).lower()
+
+            # 🔴 RATE LIMIT xüsusi handle
+            if "limit exceeded" in error_msg:
+                wait_time = 60
+                print(f"⚠️ Rate limit hit. Waiting {wait_time}s...")
+                time.sleep(wait_time)
+
+            else:
+                wait_time = delay * (2 ** attempt)
+                print(f"⚠️ Retry {attempt+1}/{retries} in {wait_time}s...")
+
+                time.sleep(wait_time)
+
             if attempt == retries - 1:
-                raise RuntimeError(f"API failed after {retries} retries: {e}")
-            time.sleep(delay * (2 ** attempt))
+                raise RuntimeError(f"❌ API failed after {retries} retries: {e}")
 
 
 # -----------------------------
