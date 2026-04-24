@@ -18,7 +18,7 @@ def retry_request(func, retries=5, delay=2):
         except Exception as e:
             error_msg = str(e).lower()
 
-            #  RATE LIMIT xüsusi handle
+            # 🔴 RATE LIMIT xüsusi handle
             if "limit exceeded" in error_msg:
                 wait_time = 60
                 print(f"⚠️ Rate limit hit. Waiting {wait_time}s...")
