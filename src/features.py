@@ -1,19 +1,5 @@
 import duckdb
 
-
-def create_staging_table(conn):
-    conn.execute("""
-    CREATE OR REPLACE TABLE staging.weather_daily_historical AS
-    SELECT *
-    FROM raw.weather_daily_historical;
-    """)
-
-    conn.execute("""
-    CREATE OR REPLACE TABLE staging.weather_daily_forecast AS
-    SELECT *
-    FROM raw.weather_daily_forecast;
-    """)
-
     
 def create_base_features_historical(conn):
 
