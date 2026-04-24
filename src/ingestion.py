@@ -153,7 +153,7 @@ def fetch_all_cities(cities_config, start_date, end_date, variables):
 
     all_data = {}
 
-    for city in cities_config:
+    for i, city in enumerate(cities_config):
         name = city["name"]
 
         print(f"Fetching → {name}")
@@ -168,7 +168,10 @@ def fetch_all_cities(cities_config, start_date, end_date, variables):
         )
 
         all_data[name] = df
-
         print(f"{name}: {df.shape[0]} rows")
+
+        # :fire: dynamic sleep
+        if i < len(cities_config) - 1:
+            time.sleep(2)
 
     return all_data
