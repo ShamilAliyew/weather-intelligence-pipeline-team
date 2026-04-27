@@ -326,5 +326,5 @@ Qonche Ismayilova → Frontend Engineer & UI/UX Designer
 | Day 5. Pipeline Automation & Data Quality | ✅ | Qonce, Shamil | 2026-04-21 | 🟢 Done | linki elave olunmalidir |
 | Day 6. Exploratory Data Analysis | ✅ | Nargiz, Kamal | 2026-04-23 | 🟢 Done | meet.google.com/xxx |
 | Day 7. Statistical Analysis & Feature Selection | ✅ | Qonce, Shamil | 2026-04-23 | 🟢 Done | meet.google.com/xxx |
-| Day 8. Predictive Modeling & Evaluation | ✅ | Kamal, Nargiz | 2026-04-24 | 🔵 In progress | |
+| Day 8. Predictive Modeling & Evaluation | ✅ | Kamal, Nargiz, Shamil, Qonche | 2026-04-24 | 🔵 In progress | |
 | Day 9. Final Presentation (Assessment) | ⬜ | Nargiz, Qonce | 2026-04-30 | ⚪ Not started | |
