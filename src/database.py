@@ -82,7 +82,7 @@ def load_raw_historical_data(conn, data_dir):
             print(f"Skipping empty file: {file}")
             continue
 
-        # 🔥 ONLY HISTORICAL FILES
+        #  ONLY HISTORICAL FILES
         if "_historical" not in file:
             continue
 

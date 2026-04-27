@@ -1,5 +1,7 @@
 ![logo_ironhack_blue 7](https://user-images.githubusercontent.com/23629340/40541063-a07a0a8a-601a-11e8-91b5-2f13e4e6b441.png)
 
+# Youth Faith Team
+
 # Project 1: Weather Intelligence Pipeline — Can We Trust This Data?
 
 ## Overview
@@ -302,3 +304,27 @@ The project will be considered successful if:
 ## Summary
 
 This project transforms weather forecasting into a **construction decision-support system**, enabling companies to plan long-term operations using both classification (safe/risky) and regression (risk intensity) outputs.
+
+
+## Project Progress Tracker
+
+Team Name: Youth Faith
+Team members: Shamil Aliyev, Kamal Musayev, Nargiz Aliyeva, Qonche Ismayilova
+
+Roles: 
+Shamil Ailyev → Machine Learning Engineer & Data Engineer
+Kamal Musayev → Machine Learning Engineer & Data Engineer
+Nargiz Aliyeva → Data Scientist & ML Engineer
+Qonche Ismayilova → Frontend Engineer & UI/UX Designer
+
+| Days | Done | People | Date | Status | URL |
+|------|------|--------|------|--------|-----|
+| Day 1. Project Kick-Off & API Exploration | ✅ | Kamal, Shamil | 2026-04-17 | 🟢 Done | |
+| Day 2. Data Ingestion Pipeline | ✅ | Nargiz, Kamal | 2026-04-19 | 🟢 Done | |
+| Day 3. Database Design & Data Loading | ✅ | Shamil, Nargiz | 2026-04-20 | 🟢 Done | |
+| Day 4. Data Cleaning & Feature Engineering | ✅ | Nargiz, Kamal | 2026-04-21 | 🟢 Done | day 2-den yeniden baxmaq |
+| Day 5. Pipeline Automation & Data Quality | ✅ | Qonce, Shamil | 2026-04-21 | 🟢 Done | linki elave olunmalidir |
+| Day 6. Exploratory Data Analysis | ✅ | Nargiz, Kamal | 2026-04-23 | 🟢 Done | meet.google.com/xxx |
+| Day 7. Statistical Analysis & Feature Selection | ✅ | Qonce, Shamil | 2026-04-23 | 🟢 Done | meet.google.com/xxx |
+| Day 8. Predictive Modeling & Evaluation | ✅ | Kamal, Nargiz | 2026-04-24 | 🔵 In progress | |
+| Day 9. Final Presentation (Assessment) | ⬜ | Nargiz, Qonce | 2026-04-30 | ⚪ Not started | |
