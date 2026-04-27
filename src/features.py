@@ -1,6 +1,6 @@
 import duckdb
 
-    
+
 def create_base_features_historical(conn):
 
     conn.execute("""
