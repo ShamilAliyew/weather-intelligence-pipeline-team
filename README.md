@@ -311,11 +311,11 @@ This project transforms weather forecasting into a **construction decision-suppo
 Team Name: Youth Faith
 Team members: Shamil Aliyev, Kamal Musayev, Nargiz Aliyeva, Qonche Ismayilova
 
-Roles: 
-Shamil Ailyev → Machine Learning Engineer & Data Engineer
-Kamal Musayev → Machine Learning Engineer & Data Engineer
-Nargiz Aliyeva → Data Scientist & ML Engineer
-Qonche Ismayilova → Frontend Engineer & UI/UX Designer
+Roles:  
+Shamil Aliyev → Machine Learning Engineer & Data Engineer  
+Kamal Musayev → Machine Learning Engineer & Data Engineer  
+Nargiz Aliyeva → Data Scientist & ML Engineer  
+Qonche Ismayilova → Frontend Engineer & UI/UX Designer  
 
 | Days | Done | People | Date | Status | URL |
 |------|------|--------|------|--------|-----|
