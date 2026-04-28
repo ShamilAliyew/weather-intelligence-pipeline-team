@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 
 from ingestion import fetch_all_cities, fetch_forecast
 
-
+import os, sys
 
 
 from database import (
@@ -281,8 +281,13 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
+    sys.path.append(os.path.abspath("../src")) 
+    db_path = "../data/database/weather_daily.duckdb"
+    os.makedirs(os.path.dirname(db_path), exist_ok=True)
+
+
     # DB connection
-    conn = get_connection()
+    conn = get_connection(db_path)
 
     # Logger (əgər varsa)
     logger = setup_logger()
@@ -296,7 +301,7 @@ if __name__ == "__main__":
 
         print("\n Pipeline completed successfully")
         print(result)
-
+        conn.close()
     except Exception as e:
         logger.error(f"Pipeline failed: {str(e)}", exc_info=True)
         print(" Pipeline failed:", e)
