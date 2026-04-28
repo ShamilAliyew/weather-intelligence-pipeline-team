@@ -24,7 +24,7 @@
 | 2026-04-21 | Pipeline Automation & Data Quality – The entire data pipeline was automated, and data quality checks such as null validation, duplicates, and gap detection were implemented. | Qonce, Shamil | Done | linki elave olunmalidir |
 | 2026-04-23 | Exploratory Data Analysis – Initial data analysis was performed, including trend detection, correlation analysis, and distribution visualizations. | Nargiz, Kamal | Done | meet.google.com/xxx |
 | 2026-04-23 | Statistical Analysis & Feature Selection – Statistical tests were applied to identify the most relevant features, preparing the dataset for modeling. | Qonce, Shamil | Done | meet.google.com/xxx |
-| 2026-04-24 | Predictive Modeling & Evaluation – Machine learning models (including Random Forest) were trained and evaluated using performance metrics. | Kamal, Nargiz | In progress | |
+| 2026-04-24 | Predictive Modeling & Evaluation – Machine learning models (including Random Forest) were trained and evaluated using performance metrics. | Kamal, Shamil, Qonche, Nargiz | In progress | |
 | 2026-04-30 | Final Presentation (Assessment) – The final project presentation will be prepared, including results, insights, and dashboard demonstrations. | Nargiz, Qonce | Not started | |
 
 ---
