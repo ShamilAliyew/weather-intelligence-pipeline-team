@@ -263,3 +263,40 @@ def run_incremental_pipeline(conn, logger):
     logger.info(f"INCREMENTAL SUMMARY: {summary}")
 
     return summary
+
+
+from logging_utils import setup_logger
+
+if __name__ == "__main__":
+
+    parser = argparse.ArgumentParser(description="Weather Pipeline")
+
+    parser.add_argument(
+        "--mode",
+        type=str,
+        required=True,
+        choices=["full", "incremental"],
+        help="Pipeline mode: full or incremental"
+    )
+
+    args = parser.parse_args()
+
+    # DB connection
+    conn = get_connection()
+
+    # Logger (əgər varsa)
+    logger = setup_logger()
+
+    try:
+        if args.mode == "full":
+            result = run_full_pipeline(conn, logger)
+
+        elif args.mode == "incremental":
+            result = run_incremental_pipeline(conn, logger)
+
+        print("\n Pipeline completed successfully")
+        print(result)
+
+    except Exception as e:
+        logger.error(f"Pipeline failed: {str(e)}", exc_info=True)
+        print(" Pipeline failed:", e)
