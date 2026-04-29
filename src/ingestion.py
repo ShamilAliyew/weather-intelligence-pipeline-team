@@ -99,7 +99,7 @@ def fetch_historical(city_name, latitude, longitude,
 
 
 # -----------------------------
-# Forecast data (7 days)
+# Forecast data (16 days)
 # -----------------------------
 def fetch_forecast(city_name, latitude, longitude, variables):
 
@@ -108,7 +108,7 @@ def fetch_forecast(city_name, latitude, longitude, variables):
             "latitude": latitude,
             "longitude": longitude,
             "daily": variables,
-            "forecast_days": 7,
+            "forecast_days": 16,
             "timezone": "auto"
         }
 
