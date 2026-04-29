@@ -110,34 +110,41 @@ We selected multiple cities with different climate conditions:
 
 We use a multi-layer feature set (daily + hourly + current) to capture construction risk behavior.
 
-### Daily Variables (Core Features)
+---
 
-- **weathercode** — General weather condition (clear, fog, storm); used to classify overall risk level
-- **temperature_2m_max** — Maximum daily temperature; used for overheating and concrete drying risk
-- **temperature_2m_min** — Minimum daily temperature; used for freezing risk of materials
-- **apparent_temperature_max** — Feels-like max temperature; used for worker heat stress (HSE risk)
-- **apparent_temperature_min** — Feels-like min temperature; used for cold exposure risk
-- **precipitation_sum** — Total precipitation (mm); used for flooding risk in construction sites
-- **precipitation_hours** — Duration of rainfall; used for scheduling work interruptions
-- **rain_sum** — Total rainfall (mm); used for rain-specific construction disruption analysis
-- **snowfall_sum** — Snow amount (cm); used for structural load and accessibility risks
-- **windspeed_10m_max** — Maximum wind speed; used for crane safety and stopping operations
-- **windgusts_10m_max** — Wind gusts; used for sudden instability detection
-- **winddirection_10m_dominant** — Wind direction; used for crane positioning and site planning
+##  A Daily Features (Primary Risk Signals)
+
+| Source | Feature Name | Unit | Aggregation | Usage in Construction Risk |
+|--------|--------------|------|-------------|-----------------------------|
+| Open-Meteo | weathercode | categorical | daily mode | General weather state (risk classification) |
+| Open-Meteo | temperature_2m_max | °C | daily max | Overheating risk, concrete curing stress |
+| Open-Meteo | temperature_2m_min | °C | daily min | Freezing risk for materials |
+| Open-Meteo | apparent_temperature_max | °C | daily max | Worker heat stress (HSE risk) |
+| Open-Meteo | apparent_temperature_min | °C | daily min | Cold exposure risk |
+| Open-Meteo | precipitation_sum | mm | daily sum | Flooding risk in construction sites |
+| Open-Meteo | precipitation_hours | hours | daily sum | Work interruption duration |
+| Open-Meteo | rain_sum | mm | daily sum | Rain-specific disruption risk |
+| Open-Meteo | snowfall_sum | cm | daily sum | Structural load and access disruption |
+| Open-Meteo | windspeed_10m_max | km/h | daily max | Crane operation safety risk |
+| Open-Meteo | windgusts_10m_max | km/h | daily max | Sudden structural instability risk |
+| Open-Meteo | winddirection_10m_dominant | degrees | daily mode | Crane orientation and site planning |
 
 ---
 
-### Hourly Variables (Feature Engineering Layer)
+##  B Hourly Features (Fine-Grained Risk Detection Layer)
 
-- **temperature_2m** — Hourly temperature; used to capture daily thermal patterns
-- **apparent_temperature** — Feels-like temperature; used for peak worker stress hours
-- **relative_humidity_2m** — Humidity (%); used for drying and coating conditions
-- **precipitation** — Hourly precipitation; used for precise stop-work timing
-- **windspeed_10m** — Hourly wind speed; used for wind pattern analysis
-- **windgusts_10m** — Wind gust spikes; used for short-term risk detection
-- **weathercode** — Hourly weather condition; used to refine daily classification
-- **surface_pressure** — Surface pressure; used for wind behavior estimation
-- **sea_level_pressure** — Sea level pressure; used for storm and wind forecasting patterns
+| Source | Feature Name | Unit | Aggregation | Usage in Construction Risk |
+|--------|--------------|------|-------------|-----------------------------|
+| Open-Meteo | temperature_2m | °C | hourly | Thermal pattern detection |
+| Open-Meteo | apparent_temperature | °C | hourly | Peak worker heat stress hours |
+| Open-Meteo | relative_humidity_2m | % | hourly avg | Drying / coating conditions |
+| Open-Meteo | precipitation | mm | hourly sum | Real-time work stop decisions |
+| Open-Meteo | windspeed_10m | km/h | hourly | Wind pattern analysis |
+| Open-Meteo | windgusts_10m | km/h | hourly max | Short-term hazard spikes |
+| Open-Meteo | weathercode | categorical | hourly mode | Refinement of daily classification |
+| Open-Meteo | surface_pressure | hPa | hourly avg | Wind behavior estimation |
+| Open-Meteo | sea_level_pressure | hPa | hourly avg | Storm and cyclone pattern detection |
+
 
 ---
 
