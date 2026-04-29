@@ -118,7 +118,8 @@ footer{display:none!important}
 .cal-pct.safe{color:#22c55e}
 .cal-pct.moderate{color:#f97316}
 .cal-pct.high{color:#ef4444}
-.cal-legend{display:flex;gap:1.2rem;justify-content:flex-end;margin-bottom:0.6rem}
+.cal-day.today{border-color:#6366f1;background:#f5f3ff}
+.cal-day.today .cal-dow{color:#6366f1}
 .leg-item{display:flex;align-items:center;gap:0.35rem;font-size:0.65rem;color:#6b7280}
 .leg-dot{width:8px;height:8px;border-radius:50%}
 
@@ -192,29 +193,28 @@ div[role="option"]:hover{background:#fff8f4!important}
 """, unsafe_allow_html=True)
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
-def read_parquet_fallback(path):
-    try:
-        import pandas as pd
-        return pd.read_parquet(path)
-    except Exception:
-        pass
-    try:
-        import duckdb
-        return duckdb.query(f"SELECT * FROM '{path}'").df()
-    except Exception:
-        pass
-    return None
+# CSV_PATH = "project folder/notebooks/data/model_data/future_predictions.csv"
+
+from pathlib import Path
+
+CSV_PATH = Path(__file__).resolve().parents[1] / "notebooks/data/model_data/future_predictions.csv"
 
 @st.cache_data
 def load_predictions():
-    df = read_parquet_fallback("/mnt/user-data/uploads/future_predictions.parquet")
-    if df is None:
-        return None
     import pandas as pd
-    if hasattr(df['date'], 'dt'):
-        df['date_str'] = df['date'].dt.strftime('%Y-%m-%d')
-    else:
-        df['date_str'] = df['date'].astype(str).str[:10]
+    try:
+        df = pd.read_csv(CSV_PATH)
+    except FileNotFoundError:
+        return None
+    except Exception:
+        return None
+    # Normalise date to plain YYYY-MM-DD string
+    df['date_str'] = df['date'].astype(str).str[:10]
+    # Risk columns are stored as 0–1 fractions; scale to 0–100 percentages
+    for col in ('crane_risk_prob', 'freeze_risk_prob', 'heat_risk_prob',
+                'flood_risk_prob', 'total_risk_score'):
+        if col in df.columns:
+            df[col] = df[col] * 100
     return df
 
 def get_ml_row(df, city_name, date_str):
@@ -268,66 +268,69 @@ def fetch_current(lat, lon):
     return r.json().get("current", {})
 
 @st.cache_data(ttl=300)
-def fetch_forecast(lat, lon):
+def fetch_today(lat, lon):
+    """Fetch only today's detailed weather data from Open-Meteo."""
+    today_str = date.today().strftime("%Y-%m-%d")
     url = (
         f"https://api.open-meteo.com/v1/forecast"
         f"?latitude={lat}&longitude={lon}"
         "&daily=temperature_2m_max,temperature_2m_min,wind_speed_10m_max,"
         "weather_code,precipitation_sum"
-        "&forecast_days=7&timezone=auto"
+        f"&start_date={today_str}&end_date={today_str}&timezone=auto"
     )
     r = requests.get(url, timeout=10); r.raise_for_status()
     d = r.json()["daily"]
-    out = []
-    for i, ds in enumerate(d["time"]):
-        dt = datetime.strptime(ds, "%Y-%m-%d")
-        out.append({
-            "date": ds, "dow": dt.strftime("%a").upper(), "display": dt.strftime("%b %-d"),
-            "day_num": dt.strftime("%-d"),
-            "max": d["temperature_2m_max"][i], "min": d["temperature_2m_min"][i],
-            "wind": d["wind_speed_10m_max"][i], "code": d["weather_code"][i],
-            "precip": d["precipitation_sum"][i] or 0,
-        })
-    return out
+    dt = datetime.strptime(today_str, "%Y-%m-%d")
+    return {
+        "date": today_str,
+        "dow": dt.strftime("%a").upper(),
+        "display": dt.strftime("%b %-d"),
+        "day_num": dt.strftime("%-d"),
+        "max": d["temperature_2m_max"][0],
+        "min": d["temperature_2m_min"][0],
+        "wind": d["wind_speed_10m_max"][0],
+        "code": d["weather_code"][0],
+        "precip": d["precipitation_sum"][0] or 0,
+    }
 
 def build_actions(ml_row):
     if ml_row is None:
         return [("safe", "✅ Standard Operations",
             "All risk indicators are within acceptable thresholds. Maintain standard operational protocols.", 5, 97)]
     actions = []
-    crane  = (ml_row.get('crane_risk_prob', 0) or 0)
+    crane  = (ml_row.get('crane_risk_prob', 0) or 0)   # already 0–100
     freeze = (ml_row.get('freeze_risk_prob', 0) or 0)
     heat   = (ml_row.get('heat_risk_prob', 0) or 0)
     flood  = (ml_row.get('flood_risk_prob', 0) or 0)
 
-    if crane > 0.4:
+    if crane > 40:
         actions.append(("high", "🏗 Restrict Crane Operations",
             "Wind speeds exceed safe thresholds for crane operations. Suspend all crane activities until conditions improve.",
-            int(crane*100), 94))
-    elif crane > 0.2:
+            int(crane), 94))
+    elif crane > 20:
         actions.append(("medium", "🏗 Monitor Crane Conditions",
             "Crane risk is elevated. Conduct pre-shift inspections and limit load to 80% capacity.",
-            int(crane*100), 88))
-    if heat > 0.5:
+            int(crane), 88))
+    if heat > 50:
         actions.append(("high", "🌡 Heat Emergency Protocol",
             "Extreme heat risk. Enforce mandatory hydration breaks every 30 min and reschedule strenuous outdoor tasks.",
-            int(heat*100), 91))
-    elif heat > 0.25:
+            int(heat), 91))
+    elif heat > 25:
         actions.append(("medium", "☀️ Shift Outdoor Crews",
             "High heat probability. Rotate outdoor crew shifts, provide shade stations and increase water supply on site.",
-            int(heat*100), 86))
-    if flood > 0.4:
+            int(heat), 86))
+    if flood > 40:
         actions.append(("high", "🌊 Flood Preparedness Alert",
             "Significant flood risk. Secure equipment, pre-position pumps and establish emergency evacuation routes.",
-            int(flood*100), 89))
-    elif flood > 0.2:
+            int(flood), 89))
+    elif flood > 20:
         actions.append(("medium", "🌧 Monitor Drainage Systems",
             "Moderate flood probability. Inspect and clear drainage. Keep sandbags on standby.",
-            int(flood*100), 83))
-    if freeze > 0.3:
+            int(flood), 83))
+    if freeze > 30:
         actions.append(("low", "❄️ Monitor Freezing Conditions",
             "Freezing risk present. Pre-treat walkways with de-icer and inspect water lines for frost damage.",
-            int(freeze*100), 87))
+            int(freeze), 87))
     if not actions:
         actions.append(("safe", "✅ Standard Operations",
             "All risk indicators within acceptable thresholds. Maintain standard operational protocols.",
@@ -377,7 +380,7 @@ lat, lon = cfg["lat"], cfg["lon"]
 
 try:
     cur = fetch_current(lat, lon)
-    fcast = fetch_forecast(lat, lon)
+    today_data = fetch_today(lat, lon)
 except Exception as e:
     st.error(f"⚠️ API error: {e}")
     st.stop()
@@ -390,18 +393,50 @@ feels = cur.get("apparent_temperature", 0)
 wcode = int(cur.get("weather_code", 0))
 wdesc, wicon = wmo(wcode)
 
-day_labels = [f"{d['dow']} {d['display']}" for d in fcast]
-if f"daysel_{city}" not in st.session_state:
-    st.session_state[f"daysel_{city}"] = day_labels[0]
+# Build 30-day calendar entries from CSV (no API calls)
+today_str = date.today().strftime("%Y-%m-%d")
+cal_days = []
+if pred_df is not None:
+    city_df = pred_df[pred_df['city'] == city].copy()
+    city_df = city_df.sort_values('date_str').reset_index(drop=True)
+    for _, row in city_df.iterrows():
+        ds = row['date_str']
+        try:
+            dt = datetime.strptime(ds, "%Y-%m-%d")
+        except Exception:
+            continue
+        cal_days.append({
+            "date": ds,
+            "dow": dt.strftime("%a").upper(),
+            "display": dt.strftime("%b %-d"),
+            "day_num": dt.strftime("%-d"),
+            "is_today": ds == today_str,
+        })
+else:
+    # Fallback: show today only
+    dt = datetime.strptime(today_str, "%Y-%m-%d")
+    cal_days = [{
+        "date": today_str,
+        "dow": dt.strftime("%a").upper(),
+        "display": dt.strftime("%b %-d"),
+        "day_num": dt.strftime("%-d"),
+        "is_today": True,
+    }]
+
+day_labels = [f"{d['dow']} {d['display']}" for d in cal_days]
+if f"daysel_{city}" not in st.session_state or st.session_state[f"daysel_{city}"] not in day_labels:
+    # Default to today if available, else first entry
+    today_label = next((f"{d['dow']} {d['display']}" for d in cal_days if d['is_today']), day_labels[0] if day_labels else "")
+    st.session_state[f"daysel_{city}"] = today_label
 
 # ── STATUS BAR ────────────────────────────────────────────────────────────────
-ml_status = "ML Engine · parquet loaded ✓" if pred_df is not None else "ML Engine · unavailable"
+ml_status = "ML Engine · CSV loaded ✓" if pred_df is not None else "ML Engine · unavailable"
 st.markdown(f"""
 <div class="status-pill">
   <span class="dot-live"></span>
   <span>LIVE</span>
   <span class="status-sep">·</span>
-  <span>Open-Meteo connected</span>
+  <span>Today's weather via Open-Meteo</span>
   <span class="status-sep">·</span>
   <span>{ml_status}</span>
   <span class="status-sep">·</span>
@@ -466,7 +501,7 @@ for col_key, label in categories:
     if pred_df is not None:
         city_df = pred_df[pred_df['city'] == city]
         if col_key in city_df.columns:
-            vals = city_df[col_key].dropna() * 100
+            vals = city_df[col_key].dropna()   # already 0–100
             cat_avgs[col_key] = vals.mean() if len(vals) else 0
             high_day_counts[col_key] = int((vals >= 60).sum())
         else:
@@ -512,34 +547,43 @@ st.markdown("""
 # Legend
 st.markdown("""
 <div class="cal-legend">
+  <div class="leg-item"><div class="leg-dot" style="background:#6366f1"></div> Today</div>
   <div class="leg-item"><div class="leg-dot" style="background:#22c55e"></div> Safe (&lt;40%)</div>
   <div class="leg-item"><div class="leg-dot" style="background:#f97316"></div> Moderate (40–64%)</div>
   <div class="leg-item"><div class="leg-dot" style="background:#ef4444"></div> High (&ge;65%)</div>
+  <div class="leg-item" style="margin-left:0.8rem;border-left:1px solid #e8ecf1;padding-left:0.8rem"><div class="leg-dot" style="background:#1d4ed8;opacity:0.5"></div> Weather-based</div>
+  <div class="leg-item"><div class="leg-dot" style="background:#7c3aed;opacity:0.4"></div> ML estimate</div>
 </div>""", unsafe_allow_html=True)
 
 sel_label = st.selectbox("Select day", day_labels, label_visibility="collapsed", key=f"daysel_{city}")
 sel_idx = day_labels.index(sel_label)
-sel_day = fcast[sel_idx]
+sel_day = cal_days[sel_idx]
+sel_is_today = sel_day["is_today"]
 ml_row = get_ml_row(pred_df, city, sel_day["date"])
 total_risk = ml_row.get("total_risk_score") if ml_row else None
 r_label_str, r_css, _ = risk_label(total_risk)
 
-# Calendar grid — 3 rows of 10
+# Calendar grid — rows of 10
 cal_html = ""
-for row_start in range(0, 30, 10):
+for row_start in range(0, len(cal_days), 10):
     cal_html += '<div class="cal-grid">'
-    for i in range(row_start, min(row_start+10, len(fcast))):
-        d = fcast[i]
+    for i in range(row_start, min(row_start+10, len(cal_days))):
+        d = cal_days[i]
         day_ml = get_ml_row(pred_df, city, d["date"])
         day_score = day_ml.get("total_risk_score") if day_ml else None
         rc = risk_class(day_score)
         score_str = f"{day_score:.0f}%" if day_score is not None else "—"
         sel_cls = "selected" if i == sel_idx else ""
+        today_cls = " today" if d["is_today"] else ""
+        ft = day_ml.get("forecast_type", "") if day_ml else ""
+        ft_dot = '<div style="width:5px;height:5px;border-radius:50%;background:#1d4ed8;margin:0.15rem auto 0 auto;opacity:0.5" title="Weather-based forecast"></div>' if ft == "real_forecast" else \
+                 '<div style="width:5px;height:5px;border-radius:50%;background:#7c3aed;margin:0.15rem auto 0 auto;opacity:0.4" title="ML recursive estimate"></div>' if ft == "recursive" else ""
         cal_html += f"""
-        <div class="cal-day {sel_cls}">
+        <div class="cal-day {sel_cls}{today_cls}">
           <div class="cal-dow">{d['dow']}</div>
           <div class="cal-date">{d['day_num']}</div>
           <div class="cal-pct {rc}">{score_str}</div>
+          {ft_dot}
         </div>"""
     cal_html += "</div>"
 
@@ -554,14 +598,22 @@ st.markdown("""
   </div>
 </div>""", unsafe_allow_html=True)
 
-ddesc, dico = wmo(sel_day["code"])
+ddesc, dico = wmo(today_data["code"] if sel_is_today else 0)
 total_display = f"{total_risk:.0f}" if total_risk is not None else "N/A"
 orv_cls = risk_class(total_risk)
 
-crane_p  = (ml_row.get("crane_risk_prob",  0) or 0) * 100 if ml_row else 0
-freeze_p = (ml_row.get("freeze_risk_prob", 0) or 0) * 100 if ml_row else 0
-heat_p   = (ml_row.get("heat_risk_prob",   0) or 0) * 100 if ml_row else 0
-flood_p  = (ml_row.get("flood_risk_prob",  0) or 0) * 100 if ml_row else 0
+# Forecast type badge for the selected day
+ftype = ml_row.get("forecast_type", "") if ml_row else ""
+ftype_badge = ""
+if ftype == "real_forecast":
+    ftype_badge = '<span style="font-size:0.6rem;font-weight:700;background:#dbeafe;color:#1d4ed8;padding:0.2rem 0.6rem;border-radius:20px;letter-spacing:0.08em;margin-left:0.8rem">WEATHER-BASED FORECAST</span>'
+elif ftype == "recursive":
+    ftype_badge = '<span style="font-size:0.6rem;font-weight:700;background:#f3e8ff;color:#7c3aed;padding:0.2rem 0.6rem;border-radius:20px;letter-spacing:0.08em;margin-left:0.8rem">ML RECURSIVE ESTIMATE</span>'
+
+crane_p  = (ml_row.get("crane_risk_prob",  0) or 0) if ml_row else 0
+freeze_p = (ml_row.get("freeze_risk_prob", 0) or 0) if ml_row else 0
+heat_p   = (ml_row.get("heat_risk_prob",   0) or 0) if ml_row else 0
+flood_p  = (ml_row.get("flood_risk_prob",  0) or 0) if ml_row else 0
 
 detail_l, detail_r = st.columns([1.2, 1])
 
@@ -569,7 +621,7 @@ with detail_l:
     # Overall risk + breakdown
     st.markdown(f"""
     <div class="det-hero">
-      <div class="det-date">{dico} {sel_day['dow'].title()}, {sel_day['display']}</div>
+      <div class="det-date" style="display:flex;align-items:center;flex-wrap:wrap;gap:0.4rem">{dico} {sel_day['dow'].title()}, {sel_day['display']}{ftype_badge}</div>
       <div class="overall-risk-box">
         <div class="orl">OVERALL RISK</div>
         <div class="orv {orv_cls}">{total_display}<span class="pct"> %</span></div>
@@ -594,20 +646,32 @@ with detail_l:
     """, unsafe_allow_html=True)
 
 with detail_r:
-    # Weather data + actions
-    wm_items = [
-        ("Max Temp", f"{sel_day['max']:.1f}", "°C"),
-        ("Min Temp", f"{sel_day['min']:.1f}", "°C"),
-        ("Max Wind", f"{sel_day['wind']:.1f}", "km/h"),
-        ("Precip", f"{sel_day['precip']:.1f}", "mm"),
-        ("Feels Like", f"{feels:.1f}", "°C"),
-        ("Humidity", f"{humid}", "%"),
-    ]
-    wm_html = '<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:0.6rem;margin-bottom:1rem">'
-    for lbl, val, unit in wm_items:
-        wm_html += f'<div class="wm-card"><div class="wm-lbl">{lbl}</div><div class="wm-val">{val}<span class="wm-unit">{unit}</span></div></div>'
-    wm_html += "</div>"
-    st.markdown(wm_html, unsafe_allow_html=True)
+    if sel_is_today:
+        # Show full weather details only for today (live API data)
+        wm_items = [
+            ("Max Temp", f"{today_data['max']:.1f}", "°C"),
+            ("Min Temp", f"{today_data['min']:.1f}", "°C"),
+            ("Max Wind", f"{today_data['wind']:.1f}", "km/h"),
+            ("Precip", f"{today_data['precip']:.1f}", "mm"),
+            ("Feels Like", f"{feels:.1f}", "°C"),
+            ("Humidity", f"{humid}", "%"),
+        ]
+        wm_html = '<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:0.6rem;margin-bottom:1rem">'
+        for lbl, val, unit in wm_items:
+            wm_html += f'<div class="wm-card"><div class="wm-lbl">{lbl}</div><div class="wm-val">{val}<span class="wm-unit">{unit}</span></div></div>'
+        wm_html += "</div>"
+        st.markdown(wm_html, unsafe_allow_html=True)
+    else:
+        # For future days: only show risk percentages, no weather API data
+        st.markdown(f"""
+        <div class="wm-card" style="margin-bottom:1rem;padding:1.2rem 1.4rem;text-align:center">
+          <div class="wm-lbl" style="margin-bottom:0.6rem">WEATHER DATA</div>
+          <div style="font-size:0.82rem;color:#9aa5b4;line-height:1.6">
+            Detailed weather data is only available for <b style="color:#374151">today</b>.<br>
+            Risk percentages above are derived from the pre-computed ML model.
+          </div>
+        </div>
+        """, unsafe_allow_html=True)
 
     actions = build_actions(ml_row)
     prio_labels = {"high":"🔴 HIGH PRIORITY","medium":"🟠 MEDIUM PRIORITY","low":"🟡 LOW PRIORITY","safe":"🟢 ALL CLEAR"}
@@ -629,7 +693,7 @@ st.markdown(f"""
 <div style="margin-top:3rem;padding-top:1rem;border-top:1px solid #e8ecf1;
   display:flex;justify-content:space-between">
   <span style="font-size:0.6rem;color:#c4cdd8;letter-spacing:0.08em">
-    WEATHER INTELLIGENCE · DATA: OPEN-METEO.COM · ML: PARQUET MODEL
+    WEATHER INTELLIGENCE · DATA: OPEN-METEO.COM · ML: CSV MODEL
   </span>
   <span style="font-size:0.6rem;color:#c4cdd8;letter-spacing:0.08em">
     {city.upper()} · {lat:.4f}°N {lon:.4f}°E
