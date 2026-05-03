@@ -174,6 +174,25 @@ if not city_df.empty:
 # ─────────────────────────────────────────────────────────────────
 st.markdown("""
 <style>
+            /* Ekrandaki "Deploy" ve profil düyməsini gizlədir */
+[data-testid="stAppDeployButton"] {
+  display: none !important;
+}
+
+/* Yuxarı sağdakı hamburger menyunu və adını gizlədir */
+#MainMenu {
+  display: none !important;
+}
+
+/* Aşağıdakı "Made with Streamlit" yazısını gizlədir */
+footer {
+  display: none !important;
+}
+
+/* Yuxarıdakı boşluq yaradan header zolağını tam silir */
+header[data-testid="stHeader"] {
+  display: none !important;
+}
 @import url('https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap');
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
