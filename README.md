@@ -33,9 +33,9 @@
 
 Most weather applications only provide forecasts for the next 7 days. However, construction companies need to plan their operations weeks in advance.
 
-We are not forecasting weather beyond 7 days. We are learning historical weather-risk relationships to predict construction risk probability for the next 30 days using projected weather patterns and seasonal trends.
+We are not forecasting weather beyond 7 days. We are learning historical weather-risk relationships to predict construction risk probability for the next 16 days using projected weather patterns and seasonal trends.
 
-For example, if today is April 19, the model will predict risks for the period April 26 → May 26, helping companies understand how many days will be unsafe for construction work.
+For example, if today is May 2, the model will predict risks for the period May 2 → May 18, helping companies understand how many days will be unsafe for construction work.
 
 ---
 
@@ -66,10 +66,33 @@ This turns weather data into a **decision-support system**, not just a forecast.
 ### Targets (Live Dashboard)
 
 - **windspeed_10m_max** — Maximum wind speed; used for crane operation risk detection *(stop operations if > 36 km/h)*
-- **temperature_2m_min** — Minimum temperature; used for freezing risk *(avoid concrete pouring if < 0°C)*
+- **temperature_2m_min** — Minimum temperature; used for freezing risk *(avoid concrete pouring if < -5°C)*
 - **apparent_temperature_max** — Maximum apparent temperature; used for heat risk *(apply safety measures if > 35°C)*
 - **precipitation_sum** — Total precipitation; used for excavation flooding risk *(activate drainage if > 10 mm)*
 
+https://www.forconstructionpros.com/concrete/equipment-products/article/22954894/american-[…]-cold-weather-concrete-placement?utm_source=chatgpt.com - freezing
+
+https://ehab.co/knowledge/wind-crane-operations?utm_source=chatgpt.com  -crane risk
+
+Flood Risk: Precipitation > 10 mm/day
+
+Rainfall intensity classifications (NOAA, WMO-based systems) define moderate
+rain as approximately 2.5–10 mm/hour. Additionally, NOAA precipitation
+analyses commonly use thresholds such as 5 mm, 10 mm, and 25 mm per day
+for evaluating rainfall intensity.
+
+Based on these classifications, 10 mm/day is used as a practical threshold
+to indicate rainfall levels that may disrupt construction activities.
+
+
+
+
+
+Heat Risk (>35°C)
+
+Based on OSHA/NIOSH heat stress guidelines for heavy construction work.
+WBGT is the standard metric, but since it is unavailable, temperature
+>35°C is used as an approximation of high heat risk.
 
 ---
 
@@ -175,7 +198,7 @@ We define a structured feature set from daily and hourly weather data to support
 ### Day 4 — Deployment Concept
 - Simple dashboard design
 - City selector
-- Risk calendar visualization (30-day window)
+- Risk calendar visualization (16-day window)
 
 ---
 
