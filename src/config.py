@@ -9,8 +9,20 @@ CITIES = [
 # -----------------------------
 # Date range
 # -----------------------------
-START_DATE = "2021-04-18"
-END_DATE = "2026-04-18"
+# START_DATE = "2021-04-18"
+# END_DATE = "2026-04-18"
+
+from datetime import datetime, timedelta
+from dateutil.relativedelta import relativedelta
+
+# Today
+today = datetime.today()
+
+# End date = yesterday
+END_DATE = (today - timedelta(days=1)).date()
+
+# Start date = 5 years before end date
+START_DATE = (END_DATE - relativedelta(years=5))
 
 # -----------------------------
 # API endpoints
