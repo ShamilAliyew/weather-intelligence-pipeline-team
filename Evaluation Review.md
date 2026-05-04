@@ -13,7 +13,7 @@ You’ve delivered a practical construction weather risk planner that addresses 
 
 **What's Implemented:**
 - End-to-end pipeline with 10 src modules including ingestion, cleaning, features, quality checks, and main app
-- Streamlit web application (`app.py` - 34KB)
+- Streamlit web application (`src/app.py` - 34KB)
 - Automated logging utilities
 - DuckDB database integration
 - Batch file for updates
