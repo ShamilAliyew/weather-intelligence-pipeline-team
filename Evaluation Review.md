@@ -93,7 +93,7 @@ You’ve delivered a practical construction weather risk planner that addresses 
 
 ---
 
-### 6. Code Quality
+### 5. Code Quality
 
 **What's Implemented:**
 - 10 src modules with clear separation
