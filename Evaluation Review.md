@@ -3,7 +3,7 @@
 
 ## Executive Summary
 
-ou’ve delivered a practical construction weather risk planner that addresses a genuine industry need—planning operations beyond the standard 7-day weather forecast window. Your system predicts risk probability for the next 16 days using projected weather patterns and seasonal trends, targeting critical wind, temperature, and precipitation thresholds for construction safety (crane operations, concrete pouring, and excavation flooding). The modular architecture with 10 src modules and comprehensive quality checks demonstrate solid engineering practices.
+You’ve delivered a practical construction weather risk planner that addresses a genuine industry need—planning operations beyond the standard 7-day weather forecast window. Your system predicts risk probability for the next 16 days using projected weather patterns and seasonal trends, targeting critical wind, temperature, and precipitation thresholds for construction safety (crane operations, concrete pouring, and excavation flooding). The modular architecture with 10 src modules and comprehensive quality checks demonstrate solid engineering practices.
 
 ---
 
